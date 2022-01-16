@@ -1,0 +1,11 @@
+{
+  "name": "calibron-12-solver",
+  "version": "1.0.0",
+  "description": "Calibron 12 Puzzle Solver",
+  "devDependencies": {
+    "jest": "^27.4.7"
+  },
+  "scripts": {
+    "test": "jest"
+  }
+}
