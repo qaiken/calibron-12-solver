@@ -1,131 +1,66 @@
-var boardSize;
-var pieces;
-var board;
-var placed;
+'use strict';
+const Puzzle = require('./puzzle.js');
 
-exports.init = function (size, basePieces) {
-  boardSize = size;
-  pieces = basePieces;
-  board = [];
+// 56x56 unit square
+const boardSize = 56;
 
-  for (let x = 0; x < size; x++) {
-    board[x] = [];
-    for (let y = 0; y < size; y++) {
-      board[x][y] = 0;
+// 12 pieces
+const basePieces = [
+  [32, 11],
+  [32, 10],
+  [28, 14],
+  [28, 7],
+  [28, 6],
+  [21, 18],
+  [21, 18],
+  [21, 14],
+  [21, 14],
+  [17, 14],
+  [14, 4],
+  [10, 7],
+];
+
+const startTime = new Date().getTime();
+
+function printBoard(board) {
+  process.stdout.write('\n');
+
+  for (let y = 0; y < boardSize; y++) {
+    for (let x = 0; x < boardSize; x++) {
+      const puzzlePieceIdx = board[x][y];
+      process.stdout.write(`${String.fromCharCode(96 + puzzlePieceIdx)} `);
     }
+    process.stdout.write('\n');
   }
-
-  placed = [];
-
-  for (let i = 0; i < pieces.length; i++) {
-    placed[i] = false;
-  }
-};
-
-exports.findSolution = function (onComplete) {
-  fillBoard(0, 0, onComplete);
-};
-
-function fillBoard(x, y, onComplete) {
-  for (var i = 0; i < pieces.length; i++) {
-    if (!placed[i] && checkAndPlaceBothWays(i, x, y, onComplete)) {
-      return true;
-    }
-  }
-  return false;
+  process.stdout.write('\n');
 }
 
-function checkAndPlaceBothWays(piecesIndex, x, y, onComplete) {
-  return (
-    checkAndPlaceOneWay(piecesIndex, false, x, y, onComplete) ||
-    checkAndPlaceOneWay(piecesIndex, true, x, y, onComplete)
-  );
-}
+function printKey(pieces) {
+  process.stdout.write('Letter: Piece');
+  process.stdout.write('\n');
 
-function checkAndPlaceOneWay(piecesIndex, rotated, x, y, onComplete) {
-  var piece = pieces[piecesIndex];
-  var width = rotated ? piece[1] : piece[0];
-  var height = rotated ? piece[0] : piece[1];
-
-  if (checkAndPlace(x, y, width, height, piecesIndex + 1)) {
-    placed[piecesIndex] = true;
-
-    if (allPlaced()) {
-      onComplete(pieces, board);
-      return true;
-    }
-
-    if (
-      findNextCorner(x, y, function (x, y) {
-        return fillBoard(x, y, onComplete);
-      })
-    ) {
-      return true;
-    }
-
-    unPlace(x, y, width, height);
-    placed[piecesIndex] = false;
+  for (let index = 1; index <= pieces.length; index++) {
+    process.stdout.write(
+      `${String.fromCharCode(96 + index)}: ${pieces[index - 1]}\n`
+    );
   }
 
-  return false;
+  process.stdout.write('\n');
 }
 
-function findNextCorner(startX, startY, callback) {
-  for (let y = startY; y < boardSize; y++) {
-    for (let x = y === startY ? startX : 0; x < boardSize; x++) {
-      if (!board[x][y]) {
-        return callback(x, y);
-      }
-    }
-  }
-  return false;
+function onComplete(pieces, board) {
+  const endTime = new Date().getTime();
+  const duration = (endTime - startTime) / 1000;
+
+  printBoard(board);
+  printKey(pieces);
+
+  process.stdout.write(`Solved in ${duration} seconds`);
 }
 
-function checkAndPlace(x, y, width, height, value) {
-  if (x + width > boardSize || y + height > boardSize) {
-    return false;
-  }
-
-  // check the corners first
-  if (
-    board[x + width - 1][y] ||
-    board[x][y + height - 1] ||
-    board[x + width - 1][y + height - 1]
-  )
-    return false;
-
-  for (let i = x; i < x + width; i++) {
-    for (let j = y; j < y + height; j++) {
-      if (!board[i][j]) {
-        board[i][j] = value;
-      } else {
-        // oops! something's here; better clean up our mess...
-        for (let l = x; l <= i; l++) {
-          for (let m = y; m < (i === l ? j : y + height); m++) {
-            board[l][m] = 0;
-          }
-        }
-        return false;
-      }
-    }
-  }
-  return true;
+function main() {
+  const puzzle = new Puzzle(boardSize, basePieces);
+  puzzle.findSolution(onComplete);
 }
 
-function unPlace(x, y, width, height) {
-  for (let i = x; i < x + width; i++) {
-    for (let j = y; j < y + height; j++) {
-      board[i][j] = 0;
-    }
-  }
-}
-
-function allPlaced() {
-  for (let i = 0; i < placed.length; i++) {
-    if (!placed[i]) {
-      return false;
-    }
-  }
-
-  return true;
-}
+main();

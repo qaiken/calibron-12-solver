@@ -1,63 +1,158 @@
-'use strict';
-const solver = require('./solver.js');
-
-const boardSize = 56;
-const basePieces = [
-  [32, 11],
-  [32, 10],
-  [28, 14],
-  [28, 7],
-  [28, 6],
-  [21, 18],
-  [21, 18],
-  [21, 14],
-  [21, 14],
-  [17, 14],
-  [14, 4],
-  [10, 7],
-];
-
-const startTime = new Date().getTime();
-
-function onComplete(pieces, board) {
-  const endTime = new Date().getTime();
-
-  printBoard(board);
-
-  for (var index = 0; index < pieces.length; index++) {
-    process.stdout.write(((index + 1) % 10) + ': ' + pieces[index] + '\n');
+class Puzzle {
+  constructor(size, basePieces) {
+    this.boardSize = size;
+    this.pieces = basePieces;
+    this.board = this.setupEmptyBoard(size);
+    this.placed = Array(basePieces.length).fill(false);
   }
 
-  process.stdout.write(`Solved in ${(endTime - startTime) / 1000} seconds`);
-}
+  setupEmptyBoard(size) {
+    const board = [];
 
-function printBoard(board) {
-  process.stdout.write('\n');
-
-  for (let y = 0; y < boardSize; y++) {
-    for (let x = 0; x < boardSize; x++) {
-      if (
-        x > 0 &&
-        x < boardSize - 1 &&
-        y > 0 &&
-        y < boardSize - 1 &&
-        board[x][y] === 0
-      ) {
-        process.stdout.write(' ');
-      } else {
-        process.stdout.write('' + (board[x][y] % 10));
+    for (let x = 0; x < size; x++) {
+      board[x] = [];
+      for (let y = 0; y < size; y++) {
+        board[x][y] = 0;
       }
-      process.stdout.write(' ');
     }
-    process.stdout.write('\n');
+
+    return board;
   }
-  process.stdout.write('\n');
+
+  findNextCorner(startX, startY, callback) {
+    for (let y = startY; y < this.boardSize; y++) {
+      for (let x = y === startY ? startX : 0; x < this.boardSize; x++) {
+        const isPositionEmpty = !this.board[x][y];
+
+        if (isPositionEmpty) {
+          return callback(x, y);
+        }
+      }
+    }
+    return false;
+  }
+
+  placeAndSolve(piecesIndex, isRotated, x, y, onComplete) {
+    const piece = this.pieces[piecesIndex];
+    const width = isRotated ? piece[1] : piece[0];
+    const height = isRotated ? piece[0] : piece[1];
+
+    const isPlaced = this.tryToPlace(x, y, width, height, piecesIndex + 1);
+
+    if (isPlaced) {
+      this.placed[piecesIndex] = true;
+
+      if (this.areAllPiecesPlaced()) {
+        onComplete(this.pieces, this.board);
+        return true;
+      }
+
+      const isSolved = this.findNextCorner(x, y, (x, y) =>
+        this.fillBoard(x, y, onComplete)
+      );
+
+      if (isSolved) {
+        return true;
+      }
+
+      // no solution with piece at this location
+      this.unPlace(x, y, width, height);
+      this.placed[piecesIndex] = false;
+    }
+
+    return false;
+  }
+
+  tryToPlace(x, y, width, height, value) {
+    const isOutsideBoard =
+      x + width > this.boardSize || y + height > this.boardSize;
+
+    if (isOutsideBoard) {
+      return false;
+    }
+
+    // Check if there is already another piece at the corners
+    const topRightCorner = this.board[x + width - 1][y];
+    const bottomLeftCorner = this.board[x][y + height - 1];
+    const bottomRightCorner = this.board[x + width - 1][y + height - 1];
+
+    if (topRightCorner || bottomLeftCorner || bottomRightCorner) {
+      return false;
+    }
+
+    for (let i = x; i < x + width; i++) {
+      for (let j = y; j < y + height; j++) {
+        const isEmpty = !this.board[i][j];
+
+        if (isEmpty) {
+          this.board[i][j] = value;
+        } else {
+          // We encountered another piece, remove what we have just placed
+          for (let l = x; l <= i; l++) {
+            const isLastRow = i === l;
+            for (let m = y; m < (isLastRow ? j : y + height); m++) {
+              this.board[l][m] = 0;
+            }
+          }
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  unPlace(x, y, width, height) {
+    for (let i = x; i < x + width; i++) {
+      for (let j = y; j < y + height; j++) {
+        this.board[i][j] = 0;
+      }
+    }
+  }
+
+  areAllPiecesPlaced() {
+    for (let i = 0; i < this.placed.length; i++) {
+      if (!this.placed[i]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  placeAndTryToSolveWithEitherRotation(piecesIndex, x, y, onComplete) {
+    return (
+      this.placeAndSolve(piecesIndex, false, x, y, onComplete) ||
+      this.placeAndSolve(piecesIndex, true, x, y, onComplete)
+    );
+  }
+
+  fillBoard(x, y, onComplete) {
+    for (let i = 0; i < this.pieces.length; i++) {
+      const isPiecePlaced = this.placed[i];
+
+      if (isPiecePlaced) {
+        continue;
+      }
+
+      const isSolved = this.placeAndTryToSolveWithEitherRotation(
+        i,
+        x,
+        y,
+        onComplete
+      );
+
+      if (isSolved) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  findSolution(onComplete) {
+    this.fillBoard(0, 0, onComplete);
+  }
 }
 
-function main() {
-  solver.init(boardSize, basePieces);
-  solver.findSolution(onComplete);
-}
-
-main();
-process.stdout.write('\n');
+module.exports = Puzzle;

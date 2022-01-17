@@ -1,21 +1,24 @@
 'use strict';
-var solver = require('../solver.js');
+const Puzzle = require('../puzzle.js');
 
 describe('Integration tests', function () {
   describe('#findSolution()', function () {
     it('should solve 4 pieces of area 1 in a 3x3 board (which is too big)', function () {
-      solver.init(3, [
+      let finalBoard;
+      let doneCount = 0;
+
+      const puzzle = new Puzzle(3, [
         [1, 1],
         [1, 1],
         [1, 1],
         [1, 1],
       ]);
-      var finalBoard;
-      var doneCount = 0;
-      solver.findSolution(function (pieces, board) {
+
+      puzzle.findSolution(function (pieces, board) {
         finalBoard = board;
         doneCount++;
       });
+
       expect(finalBoard).toEqual([
         [1, 4, 0],
         [2, 0, 0],
@@ -25,15 +28,18 @@ describe('Integration tests', function () {
     });
 
     it('can exactly solve a small simple case', function () {
-      solver.init(3, [
+      let finalBoard;
+
+      const puzzle = new Puzzle(3, [
         [1, 2],
         [1, 3],
         [2, 2],
       ]);
-      var finalBoard;
-      solver.findSolution(function (pieces, board) {
+
+      puzzle.findSolution(function (pieces, board) {
         finalBoard = board;
       });
+
       expect(finalBoard).toEqual([
         [1, 1, 2],
         [3, 3, 2],
@@ -42,17 +48,20 @@ describe('Integration tests', function () {
     });
 
     it('can exactly solve a more compelex case with duplicates', function () {
-      solver.init(5, [
+      let finalBoard;
+
+      const puzzle = new Puzzle(5, [
         [1, 2],
         [1, 5],
         [2, 2],
         [2, 2],
         [2, 5],
       ]);
-      var finalBoard;
-      solver.findSolution(function (pieces, board) {
+
+      puzzle.findSolution(function (pieces, board) {
         finalBoard = board;
       });
+
       expect(finalBoard).toEqual([
         [1, 1, 2, 5, 5],
         [3, 3, 2, 5, 5],
@@ -63,11 +72,14 @@ describe('Integration tests', function () {
     });
 
     it('succeeds with a 1-piece case', function () {
-      solver.init(2, [[2, 2]]);
-      var finalBoard;
-      solver.findSolution(function (pieces, board) {
+      let finalBoard;
+
+      const puzzle = new Puzzle(2, [[2, 2]]);
+
+      puzzle.findSolution(function (pieces, board) {
         finalBoard = board;
       });
+
       expect(finalBoard).toEqual([
         [1, 1],
         [1, 1],
@@ -75,15 +87,18 @@ describe('Integration tests', function () {
     });
 
     it('fails to solve an impossible case', function () {
-      solver.init(2, [
+      let finalBoard;
+
+      const puzzle = new Puzzle(2, [
         [1, 2],
         [1, 2],
         [1, 2],
       ]);
-      var finalBoard;
-      solver.findSolution(function (pieces, board) {
+
+      puzzle.findSolution(function (pieces, board) {
         finalBoard = board;
       });
+
       expect(finalBoard).toBe(undefined);
     });
   });
